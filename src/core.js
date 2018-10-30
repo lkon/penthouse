@@ -21,8 +21,11 @@ function blockinterceptedRequests (interceptedRequest) {
   }
 }
 
-function loadPage (page, url, timeout, pageLoadSkipTimeout) {
+function loadPage (page, url, timeout, pageLoadSkipTimeout, httpAuth) {
   debuglog('page load start')
+  if (httpAuth) {
+    page.authenticate(httpAuth)
+  }
   let waitingForPageLoad = true
   let loadPagePromise = page.goto(url)
   if (pageLoadSkipTimeout) {
@@ -246,7 +249,8 @@ async function pruneNonCriticalCssLauncher ({
   maxEmbeddedBase64Length,
   keepLargerMediaQueries,
   maxElementsToCheckPerSelector,
-  unstableKeepBrowserAlive
+  unstableKeepBrowserAlive,
+  httpAuth
 }) {
   let _hasExited = false
   // hacky to get around _hasExited only available in the scope of this function
@@ -352,7 +356,13 @@ async function pruneNonCriticalCssLauncher ({
     }
 
     // load the page (slow) [NOT BLOCKING]
-    const loadPagePromise = loadPage(page, url, timeout, pageLoadSkipTimeout)
+    const loadPagePromise = loadPage(
+      page,
+      url,
+      timeout,
+      pageLoadSkipTimeout,
+      httpAuth
+    )
 
     // turn css to formatted selectorlist [NOT BLOCKING]
     debuglog('turn css to formatted selectorlist START')
