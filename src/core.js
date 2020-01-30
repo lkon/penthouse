@@ -21,7 +21,13 @@ function blockinterceptedRequests (interceptedRequest) {
   }
 }
 
-function loadPage (page, url, timeout, pageLoadSkipTimeout) {
+function loadPage (
+  page,
+  url,
+  timeout,
+  pageLoadSkipTimeout,
+  allowedResponseCode
+) {
   debuglog('page load start')
   let waitingForPageLoad = true
   let loadPagePromise = page.goto(url)
@@ -47,10 +53,42 @@ function loadPage (page, url, timeout, pageLoadSkipTimeout) {
       })
     ])
   }
-  return loadPagePromise.then(() => {
+  return loadPagePromise.then(response => {
+    if (typeof allowedResponseCode !== 'undefined') {
+      checkResponseStatus(allowedResponseCode, response)
+    }
+
     waitingForPageLoad = false
     debuglog('page load DONE')
   })
+}
+
+function checkResponseStatus (allowedResponseCode, response) {
+  var errorMessage
+  if (
+    typeof allowedResponseCode === 'number' &&
+    response.status() !== allowedResponseCode
+  ) {
+    errorMessage = `Server response status ${response.status()} isn't matching allowedResponseCode: ${allowedResponseCode}.`
+  } else if (
+    typeof allowedResponseCode === 'object' &&
+    allowedResponseCode.constructor.name === 'RegExp' &&
+    !response
+      .status()
+      .toString()
+      .match(allowedResponseCode)
+  ) {
+    errorMessage = `Server response status ${response.status()} isn't matching allowedResponseCode: ${allowedResponseCode.toString()}.`
+  } else if (
+    typeof allowedResponseCode === 'function' &&
+    !allowedResponseCode.call(this, response)
+  ) {
+    errorMessage = `Server response status ${response.status()} isn't matching allowedResponseCode.`
+  }
+
+  if (errorMessage) {
+    throw new Error(errorMessage)
+  }
 }
 
 function setupBlockJsRequests (page) {
@@ -62,9 +100,9 @@ async function astFromCss ({ cssString, strict }) {
   // breaks puppeteer
   const css = cssString.replace(/￿/g, '\f042')
 
-  let parsingErrors = []
+  const parsingErrors = []
   debuglog('parse ast START')
-  let ast = csstree.parse(css, {
+  const ast = csstree.parse(css, {
     onParseError: error => parsingErrors.push(error.formattedMessage)
   })
   debuglog(`parse ast DONE (with ${parsingErrors.length} errors)`)
@@ -233,6 +271,7 @@ async function pruneNonCriticalCssLauncher ({
   width,
   height,
   forceInclude,
+  forceExclude,
   strict,
   userAgent,
   renderWaitTime,
@@ -246,7 +285,8 @@ async function pruneNonCriticalCssLauncher ({
   maxEmbeddedBase64Length,
   keepLargerMediaQueries,
   maxElementsToCheckPerSelector,
-  unstableKeepBrowserAlive
+  unstableKeepBrowserAlive,
+  allowedResponseCode
 }) {
   let _hasExited = false
   // hacky to get around _hasExited only available in the scope of this function
@@ -256,10 +296,13 @@ async function pruneNonCriticalCssLauncher ({
   const screenshotExtension =
     takeScreenshots && screenshots.type === 'jpeg' ? '.jpg' : '.png'
 
+  // NOTE: would need a refactor to killTimeout logic to be able to remove promise here.
+  /* eslint-disable no-async-promise-executor */
   return new Promise(async (resolve, reject) => {
+    /* eslint-enable no-async-promise-executor */
     debuglog('Penthouse core start')
-    let page
-    let killTimeout
+    let page = null
+    let killTimeout = null
     async function cleanupAndExit ({ error, returnValue }) {
       if (_hasExited) {
         return
@@ -273,7 +316,7 @@ async function pruneNonCriticalCssLauncher ({
       }
 
       if (page) {
-        let resetPromises = []
+        const resetPromises = []
         // reset page headers and cookies,
         // since we re-use the page
         if (customPageHeaders && Object.keys(customPageHeaders).length) {
@@ -352,13 +395,20 @@ async function pruneNonCriticalCssLauncher ({
     }
 
     // load the page (slow) [NOT BLOCKING]
-    const loadPagePromise = loadPage(page, url, timeout, pageLoadSkipTimeout)
+    const loadPagePromise = loadPage(
+      page,
+      url,
+      timeout,
+      pageLoadSkipTimeout,
+      allowedResponseCode
+    )
 
     // turn css to formatted selectorlist [NOT BLOCKING]
     debuglog('turn css to formatted selectorlist START')
     const buildSelectorProfilePromise = buildSelectorProfile(
       ast,
-      forceInclude
+      forceInclude && forceInclude.length ? forceInclude : null,
+      forceExclude && forceExclude.length ? forceExclude : null
     ).then(res => {
       debuglog('turn css to formatted selectorlist DONE')
       return res
@@ -407,12 +457,12 @@ async function pruneNonCriticalCssLauncher ({
     // take before screenshot (optional) [NOT BLOCKING]
     const beforeScreenshotPromise = takeScreenshots
       ? grabPageScreenshot({
-        type: 'before',
-        page,
-        screenshots,
-        screenshotExtension,
-        debuglog
-      })
+          type: 'before',
+          page,
+          screenshots,
+          screenshotExtension,
+          debuglog
+        })
       : Promise.resolve()
 
     // -> [BLOCK FOR] css into formatted selectors list with "sourcemap"
