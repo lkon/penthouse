@@ -1,7 +1,7 @@
 {
   "name": "penthouse",
   "description": "Generate critical path CSS for web pages",
-  "version": "1.10.2",
+  "version": "2.2.2",
   "homepage": "https://github.com/pocketjoso/penthouse",
   "author": {
     "name": "Jonas Ohlsson Aden",
@@ -18,7 +18,7 @@
   "license": "MIT",
   "main": "./lib/index.js",
   "engines": {
-    "node": ">=6.14.0"
+    "node": ">=8.0"
   },
   "scripts": {
     "lint": "eslint src",
@@ -38,30 +38,30 @@
   "dependencies": {
     "css-mediaquery": "^0.1.2",
     "css-tree": "1.0.0-alpha.28",
-    "debug": "^4.1.0",
+    "debug": "^4.1.1",
     "jsesc": "^2.5.2",
-    "puppeteer": "1.10.0"
+    "puppeteer": "1.15.0"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-core": "^6.26.3",
-    "babel-jest": "^23.6.0",
-    "babel-plugin-transform-object-rest-spread": "^6.26.0",
-    "babel-preset-env": "^1.7.0",
-    "eslint": "^5.7.0",
-    "eslint-config-prettier": "^3.1.0",
-    "eslint-config-standard": "^12.0.0",
-    "eslint-plugin-import": "^2.14.0",
-    "eslint-plugin-node": "^7.0.1",
-    "eslint-plugin-promise": "^4.0.1",
-    "eslint-plugin-standard": "^4.0.0",
+    "@babel/cli": "^7.6.0",
+    "@babel/core": "^7.6.0",
+    "@babel/plugin-transform-spread": "^7.6.2",
+    "@babel/preset-env": "^7.6.0",
+    "babel-jest": "^24.9.0",
+    "eslint": "^6.4.0",
+    "eslint-config-prettier": "^6.3.0",
+    "eslint-config-standard": "^14.1.0",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-node": "^10.0.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
     "gm": "^1.23.1",
-    "husky": "^1.1.2",
-    "jest": "^23.6.0",
-    "lint-staged": "^7.3.0",
-    "prettier": "^1.14.3",
-    "prettier-standard": "^8.0.0",
-    "rimraf": "^2.6.2"
+    "husky": "^3.0.5",
+    "jest": "^24.9.0",
+    "lint-staged": "^9.2.5",
+    "prettier": "^1.18.2",
+    "prettier-standard": "^15.0.1",
+    "rimraf": "^3.0.0"
   },
   "keywords": [
     "CSS Critical Path Generator",
@@ -74,21 +74,6 @@
   "files": [
     "lib/**/*.js"
   ],
-  "babel": {
-    "presets": [
-      [
-        "env",
-        {
-          "targets": {
-            "node": "6.14"
-          }
-        }
-      ]
-    ],
-    "plugins": [
-      "transform-object-rest-spread"
-    ]
-  },
   "husky": {
     "hooks": {
       "pre-commit": "lint-staged"
